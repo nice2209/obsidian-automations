@@ -45,7 +45,7 @@ $timeStr  = $now.ToString("HH:mm")
 $safeName = $Title -replace '[/\\:*?"<>|]', '-'
 $outPath  = Join-Path $WIKI_DIR "$dateStr - $safeName.md"
 
-$tagYaml     = if ($Tags) { "[$( ($Tags -split ',') | ForEach-Object { "`"$($_.Trim())`"" } | Join-String -Separator ', ')]" } else { "[]" }
+$tagYaml     = if ($Tags) { "[" + (($Tags -split ',') | ForEach-Object { "`"$($_.Trim())`"" }) -join ', ' + "]" } else { "[]" }
 $projectYaml = if ($Project) { "`nproject: `"$Project`"" } else { "" }
 
 $note = @"
