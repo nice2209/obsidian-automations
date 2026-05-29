@@ -1,0 +1,17 @@
+# obsidian-automations config
+# Copy this to config.yaml and edit. config.yaml is gitignored.
+#
+# All fields are optional — missing values are auto-detected.
+
+# Path to your Obsidian vault (auto-detected from Obsidian app if omitted)
+# vault_path: "C:\Users\YourName\Documents\Obsidian Vault"
+# vault_path: "/Users/yourname/Documents/Obsidian Vault"   # Mac
+
+# GitHub username (auto-detected from 'gh auth status' if omitted)
+# github_username: "your-github-username"
+
+# UTC offset for timestamps (default: 9 = KST)
+timezone_offset: 9
+
+# Directory for log files (default: system temp)
+# log_dir: "C:\Users\YourName\Logs"
