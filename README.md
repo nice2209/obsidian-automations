@@ -76,7 +76,19 @@ timezone_offset: 9
 ## Claude Code integration
 
 When a Claude Code session ends, `.omc/notepad.md` is automatically saved to `LLM Wiki/` if it has content.
-Configured via `~/.claude/settings.json` Stop hook.
+
+Add this to `~/.claude/settings.json` under `"hooks" > "Stop"`:
+
+```json
+{
+  "type": "command",
+  "command": "python3 ~/Scripts/session_end_hook.py",
+  "timeout": 15,
+  "async": true
+}
+```
+
+Windows uses `session_end_hook.ps1` (registered automatically by `install.ps1`).
 
 ## Vault structure
 
