@@ -15,20 +15,98 @@ Write-Host ""
 Write-Host "=== obsidian-automations installer ==="
 Write-Host ""
 
-# --- Check dependencies ---
-foreach ($cmd in @("git", "gh")) {
-    if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) {
-        Write-Error "$cmd not found. Install it first:`n  git: https://git-scm.com`n  gh:  https://cli.github.com"
+# --- Prerequisite checker ---
+function Test-Prerequisites {
+    $missing = 0
+
+    # git
+    $gitCmd = Get-Command git -ErrorAction SilentlyContinue
+    if ($gitCmd) {
+        $gitVer = (git --version 2>&1) -replace "git version ", ""
+        Write-Host "[OK]     git $gitVer found"
+    } else {
+        Write-Host "[MISSING] git not found -- install: winget install Git.Git"
+        $missing++
+    }
+
+    # gh
+    $ghCmd = Get-Command gh -ErrorAction SilentlyContinue
+    if ($ghCmd) {
+        $ghVer = (gh --version 2>&1 | Select-Object -First 1) -replace "gh version ", "" -replace " \(.*", ""
+        Write-Host "[OK]     gh $ghVer found"
+    } else {
+        Write-Host "[MISSING] gh not found -- install: winget install GitHub.cli"
+        $missing++
+    }
+
+    # Python 3
+    $pyCmd = Get-Command python -ErrorAction SilentlyContinue
+    if (-not $pyCmd) { $pyCmd = Get-Command python3 -ErrorAction SilentlyContinue }
+    if ($pyCmd) {
+        $pyVer = (& $pyCmd.Source --version 2>&1) -replace "Python ", ""
+        if ($pyVer -match "^3\.") {
+            Write-Host "[OK]     Python $pyVer found"
+        } else {
+            Write-Host "[WARN]   Python $pyVer found but Python 3 is required -- install: winget install Python.Python.3"
+            $missing++
+        }
+    } else {
+        Write-Host "[MISSING] Python 3 not found -- install: winget install Python.Python.3"
+        $missing++
+    }
+
+    # Obsidian installation
+    $obsidianPaths = @(
+        (Join-Path $env:LOCALAPPDATA "Programs\Obsidian\Obsidian.exe"),
+        (Join-Path ${env:ProgramFiles} "Obsidian\Obsidian.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Obsidian\Obsidian.exe")
+    )
+    $obsidianFound = $obsidianPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if ($obsidianFound) {
+        Write-Host "[OK]     Obsidian found at $obsidianFound"
+    } else {
+        Write-Host "[WARN]   Obsidian not found in Program Files or AppData -- install: winget install Obsidian.Obsidian"
+    }
+
+    # gh auth status
+    if ($ghCmd) {
+        $ghAuth = gh auth status 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "[OK]     gh authenticated"
+        } else {
+            Write-Host "[MISSING] gh not authenticated -- run: gh auth login"
+            $missing++
+        }
+    }
+
+    # Obsidian vault exists (parse obsidian.json)
+    $obsJson = Join-Path $env:APPDATA "Obsidian\obsidian.json"
+    if (Test-Path $obsJson) {
+        try {
+            $parsed = Get-Content $obsJson -Raw -Encoding UTF8 | ConvertFrom-Json
+            $vaultEntry = $parsed.vaults.PSObject.Properties | Select-Object -First 1
+            if ($vaultEntry -and (Test-Path $vaultEntry.Value.path)) {
+                Write-Host "[OK]     Obsidian vault found at $($vaultEntry.Value.path)"
+            } else {
+                Write-Host "[WARN]   obsidian.json found but vault path does not exist -- open Obsidian and create a vault first"
+            }
+        } catch {
+            Write-Host "[WARN]   Could not parse obsidian.json -- open Obsidian at least once"
+        }
+    } else {
+        Write-Host "[WARN]   obsidian.json not found -- open Obsidian at least once to create a vault"
+    }
+
+    Write-Host ""
+    if ($missing -gt 0) {
+        Write-Host "[FAIL]   $missing required tool(s) missing. Install them and re-run."
         exit 1
     }
+    Write-Host "[OK]     All prerequisites satisfied. Continuing install..."
+    Write-Host ""
 }
 
-$ghStatus = gh auth status 2>&1
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Not logged in to GitHub. Run: gh auth login"
-    exit 1
-}
-Write-Host "[OK] git and gh found"
+Test-Prerequisites
 
 # --- Clone or update ---
 if (Test-Path (Join-Path $INSTALL_DIR ".git")) {

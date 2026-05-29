@@ -4,34 +4,60 @@ Obsidian vault automation scripts. Logs GitHub activity, weekly reports, LLM ses
 
 ## Install (one-liner)
 
+**Windows** (관리자 PowerShell):
+
 ```powershell
 irm https://raw.githubusercontent.com/nice2209/obsidian-automations/main/install.ps1 | iex
 ```
 
-**Requirements:** [git](https://git-scm.com), [GitHub CLI](https://cli.github.com) + `gh auth login`, Obsidian opened at least once.
+**Mac/Linux:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nice2209/obsidian-automations/main/install.sh | bash
+```
+
+The installer checks all prerequisites first and tells you exactly what's missing.
+
+## Requirements
+
+| Tool     | Windows install                    | Mac install                    |
+| -------- | ---------------------------------- | ------------------------------ |
+| git      | `winget install Git.Git`           | `brew install git`             |
+| gh CLI   | `winget install GitHub.cli`        | `brew install gh`              |
+| Python 3 | `winget install Python.Python.3`   | `brew install python3`         |
+| Obsidian | `winget install Obsidian.Obsidian` | `brew install --cask obsidian` |
+
+After installing: `gh auth login` and open Obsidian once.
 
 ## What it does
 
-| Script                   | Trigger            | Output in Vault                                        |
-| ------------------------ | ------------------ | ------------------------------------------------------ |
-| `github_to_obsidian.ps1` | Every hour         | `GitHub Activity/Daily/YYYY-MM-DD.md`, `Projects/*.md` |
-| `weekly_report.ps1`      | Every Sunday 22:00 | `Weekly Reports/YYYY-WNN.md`                           |
-| `sync_pull.ps1`          | On login           | Pulls latest vault from GitHub                         |
-| `llm_wiki.ps1`           | Manual             | `LLM Wiki/YYYY-MM-DD - Title.md`                       |
-| `decision_log.ps1`       | Manual             | `Decision Log/YYYY-MM.md`                              |
+| Script               | Trigger            | Output in Vault                                        |
+| -------------------- | ------------------ | ------------------------------------------------------ |
+| `github_to_obsidian` | Every hour         | `GitHub Activity/Daily/YYYY-MM-DD.md`, `Projects/*.md` |
+| `weekly_report`      | Every Sunday 22:00 | `Weekly Reports/YYYY-WNN.md`                           |
+| `sync_pull`          | On login           | Pulls latest vault from GitHub                         |
+| `daily_note`         | Every day 08:00    | `daily/YYYY-MM-DD.md`                                  |
+| `llm_wiki`           | Manual             | `LLM Wiki/YYYY-MM-DD - Title.md`                       |
+| `decision_log`       | Manual             | `Decision Log/YYYY-MM.md`                              |
 
 ## Manual usage
 
+**Windows (PowerShell):**
+
 ```powershell
-# Save a Claude/LLM session learning
-.\llm_wiki.ps1 -Title "nodriver vs camoufox" -Tags "scraping,python" -Content "nodriver wins on Korean finance..."
+.\llm_wiki.ps1 -Title "nodriver vs camoufox" -Tags "scraping,python" -Content "..."
 .\llm_wiki.ps1 -Title "My learning" -FromClipboard
-
-# Log an architectural decision
-.\decision_log.ps1 -Decision "Use SQLite" -Reason "Zero setup, embedded" -Context "Money-Engine" -Alternatives "PostgreSQL, JSON files"
-
-# Pull latest vault manually (e.g. after working on another PC)
+.\decision_log.ps1 -Decision "Use SQLite" -Reason "Zero setup" -Context "Money-Engine"
 .\sync_pull.ps1
+```
+
+**Mac/Linux (Python):**
+
+```bash
+python3 llm_wiki.py --title "My learning" --from-clipboard
+python3 llm_wiki.py --title "nodriver vs camoufox" --tags "scraping,python" --content "..."
+python3 decision_log.py --decision "Use SQLite" --reason "Zero setup" --context "Money-Engine"
+python3 sync_pull.py
 ```
 
 ## Configuration
@@ -39,29 +65,39 @@ irm https://raw.githubusercontent.com/nice2209/obsidian-automations/main/install
 All values auto-detect. To override, copy `config.yaml.example` to `config.yaml`:
 
 ```yaml
-vault_path: "C:\Users\YourName\Documents\Obsidian Vault"
+vault_path: "/Users/yourname/Documents/Obsidian Vault" # Mac
+# vault_path: "C:\Users\YourName\Documents\Obsidian Vault"  # Windows
 github_username: "your-github-username"
 timezone_offset: 9
 ```
 
 `config.yaml` is gitignored.
 
+## Claude Code integration
+
+When a Claude Code session ends, `.omc/notepad.md` is automatically saved to `LLM Wiki/` if it has content.
+Configured via `~/.claude/settings.json` Stop hook.
+
 ## Vault structure
 
 ```
 Obsidian Vault/
 ├── GitHub Activity/
-│   ├── README.md          # Index
-│   ├── Daily/             # One note per day
-│   └── Projects/          # One note per repo
+│   ├── README.md
+│   ├── Daily/             # One note per day (auto)
+│   └── Projects/          # One note per repo (auto)
 ├── Weekly Reports/        # One note per week (auto)
-├── LLM Wiki/              # Claude/LLM session learnings (manual)
+├── daily/                 # Daily note template (auto)
+├── LLM Wiki/              # Claude/LLM session learnings (manual + auto hook)
 └── Decision Log/          # Architecture decisions by month (manual)
 ```
 
 ## Update scripts on existing machine
 
 ```powershell
-cd ~\Scripts
-git pull
+# Windows
+cd ~\Scripts && git pull
+
+# Mac
+cd ~/Scripts && git pull
 ```
