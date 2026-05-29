@@ -91,20 +91,40 @@ function Register-WeeklyTask {
         -Settings $settings -RunLevel Highest -Force | Out-Null
 }
 
-Register-HourlyTask "github-to-obsidian" (Join-Path $ScriptsDir "github_to_obsidian.ps1") $HourlyTime
-Register-WeeklyTask "obsidian-weekly-report" (Join-Path $ScriptsDir "weekly_report.ps1") $WeeklyDay "22:00"
+function Register-LoginTask {
+    param([string]$TaskName, [string]$ScriptFile)
+    $action   = New-ScheduledTaskAction -Execute "powershell.exe" `
+        -Argument "-NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$ScriptFile`""
+    $trigger  = New-ScheduledTaskTrigger -AtLogOn
+    $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 5) `
+        -StartWhenAvailable -RunOnlyIfNetworkAvailable
+    if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
+        Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false | Out-Null
+        Write-Host "[UPDATE] Task: $TaskName"
+    } else {
+        Write-Host "[NEW] Task: $TaskName"
+    }
+    Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger `
+        -Settings $settings -RunLevel Highest -Force | Out-Null
+}
+
+Register-HourlyTask "github-to-obsidian"      (Join-Path $ScriptsDir "github_to_obsidian.ps1") $HourlyTime
+Register-WeeklyTask "obsidian-weekly-report"   (Join-Path $ScriptsDir "weekly_report.ps1") $WeeklyDay "22:00"
+Register-LoginTask  "obsidian-sync-pull"       (Join-Path $ScriptsDir "sync_pull.ps1")
 
 Write-Host ""
 Write-Host "=== Setup complete ==="
 Write-Host ""
 Write-Host "Tasks registered:"
-Write-Host "  github-to-obsidian     — every hour (GitHub activity -> Obsidian)"
+Write-Host "  github-to-obsidian     — every hour       (GitHub activity -> Obsidian)"
 Write-Host "  obsidian-weekly-report — every $WeeklyDay at 22:00 (weekly summary)"
+Write-Host "  obsidian-sync-pull     — on login          (pull latest vault from GitHub)"
 Write-Host ""
 Write-Host "Manual scripts (run from PowerShell):"
-Write-Host "  .\llm_wiki.ps1 -Title 'My learning' -Content '...' [-Tags 'tag1,tag2'] [-Project 'ProjectName']"
+Write-Host "  .\llm_wiki.ps1 -Title 'My learning' -Content '...' [-Tags 'tag1,tag2'] [-Project 'Name']"
 Write-Host "  .\llm_wiki.ps1 -Title 'My learning' -FromClipboard"
-Write-Host "  .\decision_log.ps1 -Decision 'Use X' -Reason 'Because Y' [-Context 'Project'] [-Alternatives 'A, B']"
+Write-Host "  .\decision_log.ps1 -Decision 'Use X' -Reason 'Because Y' [-Context 'Project'] [-Alternatives 'A,B']"
+Write-Host "  .\sync_pull.ps1   (manual pull anytime)"
 Write-Host ""
-Write-Host "Test run now:"
+Write-Host "Test run:"
 Write-Host "  powershell -File '$(Join-Path $ScriptsDir 'github_to_obsidian.ps1')'"
