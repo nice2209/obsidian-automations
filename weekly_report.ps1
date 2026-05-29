@@ -21,7 +21,8 @@ $outPath   = Join-Path $WEEKLY_DIR "$weekNum.md"
 
 Write-Log "Generating weekly report $weekNum ..." "weekly-report"
 
-$token   = (gh auth token 2>&1).Trim()
+$token = (gh auth token 2>&1).Trim()
+if ($LASTEXITCODE -ne 0 -or -not $token) { Write-Log "gh auth token failed — aborting" "weekly-report"; exit 1 }
 $headers = @{ Authorization = "token $token"; "User-Agent" = "obsidian-automations/1.0" }
 
 $allEvents = @()
@@ -30,7 +31,7 @@ for ($page = 1; $page -le 5; $page++) {
         $parsed = Invoke-RestMethod -Uri "https://api.github.com/users/$GH_USER/events?per_page=100&page=$page" -Headers $headers
         if ($parsed.Count -eq 0) { break }
         $allEvents += $parsed
-    } catch { break }
+    } catch { Write-Log "Page $page fetch failed: $_" "weekly-report"; break }
 }
 
 $weekEvents = $allEvents | Where-Object {

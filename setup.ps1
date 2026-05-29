@@ -46,7 +46,7 @@ Write-Host "[OK] GitHub user: $GH_USER"
 $configPath = Join-Path $ScriptsDir "config.yaml"
 if (-not (Test-Path $configPath)) {
     @"
-vault_path: "$($VAULT -replace '\\', '\\')"
+vault_path: "$VAULT"
 github_username: "$GH_USER"
 timezone_offset: $TZ_OFFSET
 "@ | Set-Content $configPath -Encoding UTF8

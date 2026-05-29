@@ -16,7 +16,8 @@ $PROJECTS_DIR = Join-Path $ACTIVITY_DIR "Projects"
 
 Write-Log "Fetching GitHub events for $GH_USER ..." "github-to-obsidian"
 
-$token   = (gh auth token 2>&1).Trim()
+$token = (gh auth token 2>&1).Trim()
+if ($LASTEXITCODE -ne 0 -or -not $token) { Write-Log "gh auth token failed — aborting" "github-to-obsidian"; exit 1 }
 $headers = @{ Authorization = "token $token"; "User-Agent" = "obsidian-automations/1.0" }
 
 $allEvents = @()

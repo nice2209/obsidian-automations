@@ -38,9 +38,10 @@ if (-not $_cfg.vault_path) {
     if ($obsJsonFile) {
         try {
             $parsed = Get-Content $obsJsonFile -Raw -Encoding UTF8 | ConvertFrom-Json
-            $firstVault = $parsed.vaults.PSObject.Properties | Select-Object -First 1
-            if ($firstVault) {
-                $_cfg.vault_path = $firstVault.Value.path
+            $openVault  = $parsed.vaults.PSObject.Properties | Where-Object { $_.Value.open } | Select-Object -First 1
+            $bestVault  = if ($openVault) { $openVault } else { $parsed.vaults.PSObject.Properties | Select-Object -First 1 }
+            if ($bestVault) {
+                $_cfg.vault_path = $bestVault.Value.path
             }
         } catch {
             Write-Warning "Could not parse obsidian.json: $_"
@@ -81,8 +82,12 @@ function ConvertTo-Tz {
 function Write-Log {
     param([string]$Message, [string]$LogName = "obsidian-auto")
     $ts = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-    $logFile = Join-Path $LOG_DIR "$LogName.log"
-    "$ts  $Message" | Tee-Object -FilePath $logFile -Append | Write-Host
+    $line = "$ts  $Message"
+    Write-Host $line
+    try {
+        $logFile = Join-Path $LOG_DIR "$LogName.log"
+        Add-Content -Path $logFile -Value $line -Encoding UTF8 -ErrorAction Stop
+    } catch { <# log write failed — continue without crashing the task #> }
 }
 function Sync-Vault {
     param([string[]]$Paths, [string]$CommitMsg)
